@@ -33,18 +33,17 @@ jobs:
         docker tag tienda-db:latest ${{ secrets.ECR_REPO_URL_DB }}:latest
         docker push ${{ secrets.ECR_REPO_URL_DB }}:latest
 
-    - name: Desplegar DB vía SSM
+    - name: Desplegar DB vía Backend
       run: |
         aws ssm send-command \
-          --instance-ids ${{ secrets.EC2_DB_INSTANCE_ID }} \
+          --instance-ids ${{ secrets.EC2_BACKEND_INSTANCE_ID }} \
           --document-name "AWS-RunShellScript" \
-          --comment "Actualizar tienda-db desde ECR" \
+          --comment "Actualizar tienda-db desde backend" \
           --parameters '{"commands":[
-            "set -e",
-            "aws ecr get-login-password --region '${{ secrets.AWS_REGION }}' | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-            "docker pull ${{ secrets.ECR_REPO_URL_DB }}:latest",
-            "docker stop tienda-db || true",
-            "docker rm tienda-db || true",
-            "docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql ${{ secrets.ECR_REPO_URL_DB }}:latest"
+            "ssh -i par_de_claves.pem -o StrictHostKeyChecking=no ec2-user@10.0.153.164 \"aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}\"",
+            "ssh -i par_de_claves.pem -o StrictHostKeyChecking=no ec2-user@10.0.153.164 \"docker pull ${{ secrets.ECR_REPO_URL_DB }}:latest\"",
+            "ssh -i par_de_claves.pem -o StrictHostKeyChecking=no ec2-user@10.0.153.164 \"docker stop tienda-db || true\"",
+            "ssh -i par_de_claves.pem -o StrictHostKeyChecking=no ec2-user@10.0.153.164 \"docker rm tienda-db || true\"",
+            "ssh -i par_de_claves.pem -o StrictHostKeyChecking=no ec2-user@10.0.153.164 \"docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql ${{ secrets.ECR_REPO_URL_DB }}:latest\""
           ]}' \
           --output text
